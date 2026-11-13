@@ -1,0 +1,897 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sound Control</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg,#00152e,#0754a5,#001d48);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+    color: white;
+    padding: 25px 0;
+}
+
+.emoji-bg {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.emoji {
+    position: absolute;
+    font-size: 30px;
+    opacity: .22;
+    animation: float 8s infinite ease-in-out;
+}
+
+@keyframes float {
+    0%,100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-35px) rotate(20deg); }
+}
+
+.container {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    width: 90%;
+    max-width: 430px;
+}
+
+.subtitle {
+    font-size: 17px;
+    letter-spacing: 2px;
+    color: #bce4ff;
+    margin-bottom: 12px;
+}
+
+h2 {
+    margin-bottom: 25px;
+    font-size: 25px;
+}
+
+.main-box {
+    background: rgba(255,255,255,.12);
+    border: 2px solid rgba(255,255,255,.3);
+    backdrop-filter: blur(15px);
+    border-radius: 22px;
+    padding: 35px 20px;
+    cursor: pointer;
+    box-shadow: 0 0 35px #008cff4d;
+    transition: .25s;
+}
+
+.main-box:hover {
+    transform: scale(1.04);
+    box-shadow: 0 0 45px #168cff;
+}
+
+.main-box h1 {
+    font-size: 35px;
+    margin: 0;
+}
+
+.controls {
+    display: none;
+    margin-top: 25px;
+    gap: 15px;
+}
+
+.controls.show {
+    display: flex;
+}
+
+.btn {
+    flex: 1;
+    border: none;
+    padding: 17px 10px;
+    border-radius: 14px;
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.btn:active {
+    transform: scale(.90);
+}
+
+.start {
+    background: #087bff;
+    box-shadow: 0 5px 20px #087bff66;
+}
+
+.stop {
+    background: #e62940;
+    box-shadow: 0 5px 20px #e6294066;
+}
+
+.btn small {
+    display: block;
+    font-size: 13px;
+    margin-top: 6px;
+}
+
+/* Volume */
+
+.volume {
+    margin-top: 25px;
+    background: rgba(255,255,255,.10);
+    padding: 18px;
+    border-radius: 15px;
+}
+
+.volume input {
+    width: 100%;
+    margin-top: 12px;
+    cursor: pointer;
+    accent-color: #16a0ff;
+}
+
+.volume span {
+    color: #8dffbd;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+/* Warning */
+
+.warning {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #050000;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+}
+
+.warning.show {
+    display: flex;
+}
+
+.warning-content {
+    width: 100%;
+    animation: warningFlash .7s infinite alternate;
+}
+
+.warning-icon {
+    font-size: clamp(130px,30vw,280px);
+    color: #ff2020;
+    line-height: 1;
+    text-shadow: 0 0 35px red;
+}
+
+.warning h1 {
+    font-size: clamp(55px,13vw,130px);
+    color: red;
+    font-weight: 1000;
+    margin: 15px 0;
+    letter-spacing: 5px;
+    text-shadow: 0 0 25px red;
+}
+
+.warning h2 {
+    color: white;
+    font-size: clamp(20px,5vw,40px);
+    margin: 10px 0;
+}
+
+.warning p {
+    color: #ff3030;
+    font-size: clamp(22px,5vw,42px);
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+@keyframes warningFlash {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: .55;
+        transform: scale(1.025);
+    }
+}
+
+/* Close button */
+
+.close-warning {
+    display: none;
+    background: #e00000;
+    color: white;
+    border: 2px solid white;
+    border-radius: 12px;
+    padding: 15px 40px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close-warning.visible {
+    display: inline-block;
+}
+
+/* Hidden upload inputs */
+
+.uploads {
+    display: none;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="emoji-bg" id="emojiBg"></div>
+
+<div class="container">
+
+    <div class="subtitle">
+        🔊 ارفع الصوت لتجربة أفضل
+    </div>
+
+    <h2>اضغط على الصندوق</h2>
+
+    <div class="main-box" id="mainBox">
+        <h1>📦 اضغط هنا</h1>
+    </div>
+
+    <div class="controls" id="controls">
+
+        <button class="btn stop" id="stopBtn">
+            ⏹ إيقاف
+            <small>STOP</small>
+        </button>
+
+        <button class="btn start" id="startBtn">
+            ▶ تشغيل
+            <small>START</small>
+        </button>
+
+    </div>
+
+    <div class="volume">
+
+        <div>🔊 مستوى الصوت</div>
+
+        <input type="range"
+               id="volume"
+               min="100"
+               max="200"
+               value="100">
+
+        <span id="volumeValue">100%</span>
+
+    </div>
+
+</div>
+
+<!-- Hidden sound storage inputs -->
+
+<div class="uploads">
+
+    <input type="file" id="welcomeFile" accept="audio/*">
+    <div id="welcomeStatus"></div>
+
+    <input type="file" id="startFile" accept="audio/*">
+    <div id="startStatus"></div>
+
+    <input type="file" id="stopFile" accept="audio/*">
+    <div id="stopStatus"></div>
+
+    <input type="text" id="message">
+
+</div>
+
+<!-- Warning Screen -->
+
+<div class="warning" id="warning">
+
+    <div class="warning-content">
+
+        <div class="warning-icon">⚠</div>
+
+        <h1>WARNING</h1>
+
+        <h2>EXTREME CAUTION</h2>
+
+        <p id="warningText">
+            PLEASE BE CAREFUL!
+        </p>
+
+        <button id="closeWarningBtn"
+                onclick="closeWarning()"
+                class="close-warning">
+            CLOSE
+        </button>
+
+    </div>
+
+</div>
+
+<audio id="audio"></audio>
+
+<script>
+
+// =================================
+// 1. Database
+// =================================
+
+let db;
+
+const request = indexedDB.open("SoundControlDB", 1);
+
+const dbReady = new Promise((resolve, reject) => {
+
+    request.onupgradeneeded = function(e) {
+
+        const database = e.target.result;
+
+        if (!database.objectStoreNames.contains("sounds")) {
+            database.createObjectStore("sounds");
+        }
+
+    };
+
+    request.onsuccess = function(e) {
+        db = e.target.result;
+        resolve(db);
+    };
+
+    request.onerror = function() {
+        reject(request.error);
+    };
+
+});
+
+// =================================
+// 2. Save and get sounds
+// =================================
+
+function saveSound(name, file) {
+
+    return new Promise((resolve, reject) => {
+
+        const transaction = db.transaction("sounds", "readwrite");
+
+        transaction.objectStore("sounds").put(file, name);
+
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+
+    });
+
+}
+
+function getSound(name) {
+
+    return new Promise((resolve, reject) => {
+
+        const transaction = db.transaction("sounds", "readonly");
+
+        const req = transaction.objectStore("sounds").get(name);
+
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+
+    });
+
+}
+
+// =================================
+// 3. Elements
+// =================================
+
+const audio = document.getElementById("audio");
+const volume = document.getElementById("volume");
+const warning = document.getElementById("warning");
+
+let welcomeURL = null;
+let startURL = null;
+let stopURL = null;
+
+let warningTimer = null;
+let welcomePending = false;
+
+// =================================
+// 4. Real volume boost
+// =================================
+
+let audioContext = null;
+let audioSource = null;
+let audioGain = null;
+
+function setupVolumeBoost() {
+
+    if (audioContext) return;
+
+    const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) {
+        return;
+    }
+
+    audioContext = new AudioContextClass();
+
+    audioSource =
+        audioContext.createMediaElementSource(audio);
+
+    audioGain = audioContext.createGain();
+
+    audioSource.connect(audioGain);
+    audioGain.connect(audioContext.destination);
+
+    audio.volume = 1;
+
+    audioGain.gain.value =
+        Number(volume.value) / 100;
+
+}
+
+async function unlockAudio() {
+
+    try {
+
+        setupVolumeBoost();
+
+        if (audioContext &&
+            audioContext.state === "suspended") {
+
+            await audioContext.resume();
+
+        }
+
+        if (welcomePending && welcomeURL) {
+
+            welcomePending = false;
+
+            playWelcome();
+
+        }
+
+    } catch(e) {
+
+        console.log("Audio unlock error:", e);
+
+    }
+
+}
+
+// =================================
+// 5. Change volume
+// =================================
+
+const savedBoost =
+    Number(localStorage.getItem("savedBoost") || 100);
+
+volume.value = Math.min(200, Math.max(100, savedBoost));
+
+document.getElementById("volumeValue").textContent =
+    volume.value + "%";
+
+volume.addEventListener("input", function() {
+
+    const value = Math.max(100, Math.min(200, Number(this.value)));
+
+    this.value = value;
+
+    localStorage.setItem("savedBoost", value);
+
+    document.getElementById("volumeValue").textContent =
+        value + "%";
+
+    setupVolumeBoost();
+
+    if (audioGain) {
+        audioGain.gain.value = value / 100;
+    }
+
+});
+
+// =================================
+// 6. Object URLs
+// =================================
+
+function replaceURL(oldURL, file) {
+
+    if (oldURL) {
+        URL.revokeObjectURL(oldURL);
+    }
+
+    return URL.createObjectURL(file);
+
+}
+
+// =================================
+// 7. Load saved sounds
+// =================================
+
+function setSoundStatus(id, file) {
+
+    document.getElementById(id).textContent =
+        "✓ محفوظ: " + file.name;
+
+}
+
+async function loadSavedSounds() {
+
+    const welcome = await getSound("welcome");
+    const start = await getSound("start");
+    const stop = await getSound("stop");
+
+    if (welcome) {
+        welcomeURL = replaceURL(welcomeURL, welcome);
+        setSoundStatus("welcomeStatus", welcome);
+    }
+
+    if (start) {
+        startURL = replaceURL(startURL, start);
+        setSoundStatus("startStatus", start);
+    }
+
+    if (stop) {
+        stopURL = replaceURL(stopURL, stop);
+        setSoundStatus("stopStatus", stop);
+    }
+
+}
+
+// =================================
+// 8. Select and save sounds
+// =================================
+
+function selectSound(inputId, key, statusId) {
+
+    const input = document.getElementById(inputId);
+
+    input.addEventListener("change", async function() {
+
+        const file = this.files[0];
+
+        if (!file) return;
+
+        if (!file.type.startsWith("audio/")) {
+            alert("اختار ملف صوتي فقط");
+            return;
+        }
+
+        try {
+
+            await dbReady;
+            await saveSound(key, file);
+
+            let oldURL = null;
+
+            if (key === "welcome") oldURL = welcomeURL;
+            if (key === "start") oldURL = startURL;
+            if (key === "stop") oldURL = stopURL;
+
+            const url = replaceURL(oldURL, file);
+
+            if (key === "welcome") welcomeURL = url;
+            if (key === "start") startURL = url;
+            if (key === "stop") stopURL = url;
+
+            setSoundStatus(statusId, file);
+
+        } catch(e) {
+
+            alert("تعذر حفظ الصوت");
+
+        }
+
+    });
+
+}
+
+selectSound("welcomeFile", "welcome", "welcomeStatus");
+selectSound("startFile", "start", "startStatus");
+selectSound("stopFile", "stop", "stopStatus");
+
+// =================================
+// 9. Warning message
+// =================================
+
+const message = document.getElementById("message");
+
+message.value =
+    localStorage.getItem("warningMessage") || "";
+
+message.addEventListener("input", function() {
+
+    localStorage.setItem("warningMessage", this.value);
+
+});
+
+// =================================
+// 10. Click sound
+// =================================
+
+let ctx;
+
+function clickSound() {
+
+    try {
+
+        ctx = ctx || new AudioContext();
+
+        if (ctx.state === "suspended") {
+            ctx.resume();
+        }
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.value = 650;
+
+        gain.gain.setValueAtTime(0.04, ctx.currentTime);
+
+        gain.gain.exponentialRampToValueAtTime(
+            0.001, ctx.currentTime + 0.07
+        );
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.07);
+
+    } catch(e) {}
+
+}
+
+// =================================
+// 11. Emoji background
+// =================================
+
+const emojis = [
+    "😂","🔥","⚡","💙","🎮","🚀",
+    "😎","⭐","🎵","👾","💥","🎯",
+    "🌟","🎧","💎","😈","🌀","🔵"
+];
+
+const bg = document.getElementById("emojiBg");
+
+for (let i = 0; i < 45; i++) {
+
+    const emoji = document.createElement("div");
+
+    emoji.className = "emoji";
+
+    emoji.textContent =
+        emojis[Math.floor(Math.random() * emojis.length)];
+
+    emoji.style.left = Math.random() * 100 + "%";
+    emoji.style.top = Math.random() * 100 + "%";
+    emoji.style.animationDelay = Math.random() * 8 + "s";
+
+    bg.appendChild(emoji);
+
+}
+
+// =================================
+// 12. Welcome sound
+// =================================
+
+async function playWelcome() {
+
+    if (!welcomeURL) return;
+
+    setupVolumeBoost();
+
+    if (audioContext &&
+        audioContext.state === "suspended") {
+
+        try {
+            await audioContext.resume();
+        } catch(e) {}
+    }
+
+    audio.pause();
+    audio.currentTime = 0;
+
+    audio.src = welcomeURL;
+    audio.volume = 1;
+
+    if (audioGain) {
+        audioGain.gain.value = volume.value / 100;
+    }
+
+    try {
+
+        await audio.play();
+        welcomePending = false;
+
+    } catch(e) {
+
+        welcomePending = true;
+
+    }
+
+}
+
+// Load sounds and attempt welcome playback
+
+window.addEventListener("load", async function() {
+
+    try {
+
+        await dbReady;
+        await loadSavedSounds();
+
+        playWelcome();
+
+    } catch(e) {
+
+        console.error("Loading error:", e);
+
+    }
+
+});
+
+// Retry welcome after first interaction if autoplay was blocked
+
+document.addEventListener("pointerdown", function() {
+
+    unlockAudio();
+
+}, { once: true });
+
+// =================================
+// 13. Main box
+// =================================
+
+const controls = document.getElementById("controls");
+
+document.getElementById("mainBox").onclick = function() {
+
+    clickSound();
+
+    controls.classList.add("show");
+
+};
+
+// =================================
+// 14. START
+// =================================
+
+document.getElementById("startBtn").onclick = async function() {
+
+    clickSound();
+
+    await unlockAudio();
+
+    if (!startURL) {
+        alert("صوت التشغيل غير محفوظ");
+        return;
+    }
+
+    clearTimeout(warningTimer);
+
+    warning.classList.remove("show");
+
+    document.getElementById("closeWarningBtn")
+        .classList.remove("visible");
+
+    audio.pause();
+    audio.currentTime = 0;
+
+    audio.src = startURL;
+    audio.volume = 1;
+
+    if (audioGain) {
+        audioGain.gain.value = volume.value / 100;
+    }
+
+    audio.play().catch(() => {
+        alert("تعذر تشغيل الصوت");
+    });
+
+};
+
+// =================================
+// 15. STOP and warning
+// =================================
+
+document.getElementById("stopBtn").onclick = async function() {
+
+    clickSound();
+
+    await unlockAudio();
+
+    audio.pause();
+    audio.currentTime = 0;
+
+    if (stopURL) {
+
+        audio.src = stopURL;
+        audio.volume = 1;
+
+        if (audioGain) {
+            audioGain.gain.value = volume.value / 100;
+        }
+
+        audio.play().catch(() => {});
+
+    }
+
+    document.getElementById("warningText").textContent =
+        message.value || "PLEASE BE CAREFUL!";
+
+    warning.classList.add("show");
+
+    const closeBtn =
+        document.getElementById("closeWarningBtn");
+
+    closeBtn.classList.remove("visible");
+
+    clearTimeout(warningTimer);
+
+    warningTimer = setTimeout(function() {
+
+        closeBtn.classList.add("visible");
+
+    }, 20000);
+
+    if (!document.fullscreenElement) {
+
+        document.documentElement
+            .requestFullscreen?.()
+            .catch(() => {});
+
+    }
+
+};
+
+// =================================
+// 16. CLOSE warning
+// =================================
+
+function closeWarning() {
+
+    clearTimeout(warningTimer);
+
+    audio.pause();
+    audio.currentTime = 0;
+
+    audio.removeAttribute("src");
+    audio.load();
+
+    warning.classList.remove("show");
+
+    document.getElementById("closeWarningBtn")
+        .classList.remove("visible");
+
+    if (document.fullscreenElement) {
+
+        document.exitFullscreen().catch(() => {});
+
+    }
+
+}
+
+</script>
+
+</body>
+</html>
